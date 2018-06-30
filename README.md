@@ -1,4 +1,4 @@
-# Coles a.k. weeklyRipper
+# Coles a.k.a. weeklyRipper
 
 #thinkRetail
 
