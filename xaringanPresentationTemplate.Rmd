@@ -237,8 +237,8 @@ See the next page for two HTML widgets.
 ---
 
 ```{r out.width='100%', fig.height=6, eval=require('leaflet')}
-library(leaflet)
-leaflet() %>% addTiles() %>% setView(-93.65, 42.0285, zoom = 17)
+# library(leaflet)
+leaflet() %>% addTiles() %>% setView(145.0485327, -37.8454605, zoom = 17)
 ```
 
 ---
