@@ -1,12 +1,12 @@
 # Housekeeping ----
 rm(list=ls())
 gc()
-if(length(dev.list()) != 0) dev.off()
+gc()
+if(length(dev.list()) != 0) lapply(dev.list(), dev.off)
 cat("\014")
 
 # Initialize base object ----
 baseObj <- NULL
-
 
 # Load libraries ----
 # List required pacakges here
@@ -63,7 +63,6 @@ pkgNew <- pkgList[!(pkgList %in% installed.packages()[,"Package"])]
 if(length(pkgNew)) install.packages(pkgNew, dependencies = TRUE)
 # Load the packages
 lapply(pkgList, require, character.only = TRUE)
-
 
 baseObj$packages <- pkgList
 
