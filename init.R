@@ -38,6 +38,7 @@ pkgList <- c('tidyverse', # tidyverse ecosystem which includes
              
              'lubridate', # date and time
              'timeDate', # date and time
+             'zoo', # time series class
              'tsibble', # tibble for time series
              'sugrrants', # visualization of HD time series
              'tseries', # time series analysis
