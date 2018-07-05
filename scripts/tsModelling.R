@@ -55,7 +55,7 @@ combPlotData %>%
   theme_bw() +
   labs(title = 
          "Total guests reserving using AIR and HPG for AIR stores over time") -> rawVsCleanesTS
-rawVsCleanesTS + scale_y_continuous(trans = "log1p")
+rawVsCleanesTSLog <- rawVsCleanesTS + scale_y_continuous(trans = "log1p")
 
 
 # Auto arima setup ----
@@ -102,9 +102,9 @@ combPlotData %>%
   labs(y = "Total visitors all AIR stores", x = "Date") +
   theme_bw() +
   labs(title = 
-         "Total guests reserving using AIR and HPG for AIR stores over time") -> ForerawVsCleanesTS
+         "Total guests reserving (using AIR and HPG) and visiting AIR stores over time") -> ForerawVsCleanesTS
 ForerawVsCleanesTS + scale_y_continuous(trans = "log1p")
 
 
 pb2 <- plotly_build(ForerawVsCleanesTS)
-pb2
+# pb2
