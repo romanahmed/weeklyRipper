@@ -27,13 +27,13 @@ airData %>%
   unique() %>%
   na.omit -> airResVsVisDay
 prop.table(table(airResVsVisDay$air_reserve_day, airResVsVisDay$visit_day),
-           margin = 1) -> reserveTransTab
-reserveTransTab %>% as.data.frame() -> reserveTransTab
-colnames(reserveTransTab) <-  c("Reserved", "Visited", "Proportion")
-reserveTransTab$Reserved <- factor(str_c(reserveTransTab$Reserved))
-reserveTransTab %>% group_by(Reserved) %>%
+           margin = 1) -> reserveTransTabAir
+reserveTransTabAir %>% as.data.frame() -> reserveTransTabAir
+colnames(reserveTransTabAir) <-  c("Reserved", "Visited", "Proportion")
+reserveTransTabAir$reserveSys <- "AIR"
+reserveTransTabAir$Reserved <- factor(str_c(reserveTransTabAir$Reserved))
+reserveTransTabAir %>% group_by(Reserved) %>%
   ggplot(aes(x = Visited, y = Proportion, fill = Reserved)) +
-  # geom_point() +
   geom_bar(stat = "identity") +
   facet_wrap(~Reserved) +
   coord_polar() +
@@ -123,11 +123,12 @@ hpgAir %>%
   na.omit -> hpgResVsVisDay
 
 prop.table(table(hpgResVsVisDay$hpg_reserve_day, hpgResVsVisDay$visit_day),
-           margin = 1) -> reserveTransTab
-reserveTransTab %>% as.data.frame() -> reserveTransTab
-colnames(reserveTransTab) <-  c("Reserved", "Visited", "Proportion")
-reserveTransTab$Reserved <- factor(str_c(reserveTransTab$Reserved))
-reserveTransTab %>% group_by(Reserved) %>%
+           margin = 1) -> reserveTransTabHpg
+reserveTransTabHpg %>% as.data.frame() -> reserveTransTabHpg
+colnames(reserveTransTabHpg) <-  c("Reserved", "Visited", "Proportion")
+reserveTransTabHpg$reserveSys <- "HPG"
+reserveTransTabHpg$Reserved <- factor(str_c(reserveTransTabHpg$Reserved))
+reserveTransTabHpg %>% group_by(Reserved) %>%
   ggplot(aes(x = Visited, y = Proportion, fill = Reserved)) +
   geom_bar(stat = "identity") +
   facet_wrap(~Reserved) +
@@ -135,6 +136,20 @@ reserveTransTab %>% group_by(Reserved) %>%
   theme_bw() +
   theme(legend.position = "none") +
   labs(title = "Distribution of visit day by HPG reservation day") -> hpgReservationLSmemory
+
+
+# Combined reserve to visist plot ----
+
+res2visTran <- bind_rows(reserveTransTabAir, reserveTransTabHpg) %>%
+  ggplot(aes(x = Visited, y = Proportion, fill = Reserved)) +
+  geom_bar(stat = "identity") +
+  facet_grid(reserveSys ~ Reserved) +
+  coord_polar() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(title = "Distribution of visit day by reservation day") -> hpgNairReservationLSmemory
+
+
 
 # Plot aggregated number of visitors for all stores -----
 
@@ -158,14 +173,14 @@ hpgAir %>%
 combPlotData[combPlotData == 0] <- NA
 combPlotData %>%
   ggplot(aes(visit_date, airVisitor)) +
-  geom_line() +
+  geom_line(size = 1.2) +
   geom_smooth(aes(visit_date, airVisitor),
               method = "loess", color = "blue", span = 0.075) +
   # 0.075 comes from rounding of 28/nrow()
-  geom_line(aes(y=airReservedVis)) +
+  geom_line(aes(y=airReservedVis), size = 1.2, col = "darkgreen") +
   geom_smooth(aes(visit_date, airReservedVis),
               method = "loess", color = "darkgreen", span = 0.075)+
-  geom_line(aes(y=hpgReservedVis)) +
+  geom_line(aes(y=hpgReservedVis), size = 1.2, col = "maroon") +
   geom_smooth(aes(visit_date, hpgReservedVis),
               method = "loess", color = "maroon", span = 0.075)+
   labs(y = "Total visitors all AIR stores", x = "Date") +
@@ -173,6 +188,26 @@ combPlotData %>%
   labs(title = "Total guests reserving (using AIR and HPG) and visiting AIR stores over time") -> smoothAggrAirAllStores
 
 smoothAggrAirAllStores + scale_y_continuous(trans = "log1p")
+
+
+
+combPlotData %>%
+  ggplot(aes(visit_date, airVisitor)) +
+  geom_line(size = 1.2) +
+  # geom_smooth(aes(visit_date, airVisitor),
+  #             method = "loess", color = "blue", span = 0.075) +
+  # 0.075 comes from rounding of 28/nrow()
+  geom_line(aes(y=airReservedVis), size = 1.2, col = "darkgreen") +
+  # geom_smooth(aes(visit_date, airReservedVis),
+  #             method = "loess", color = "darkgreen", span = 0.075)+
+  geom_line(aes(y=hpgReservedVis), size = 1.2, col = "maroon") +
+  # geom_smooth(aes(visit_date, hpgReservedVis),
+  #             method = "loess", color = "maroon", span = 0.075)+
+  labs(y = "Total visitors/reservation all AIR stores", x = "Date") +
+  theme_bw() +
+  labs(title = "Total guests reserving (using AIR and HPG) and visiting AIR stores over time") -> aggrAirAllStoresTP
+
+aggrAirAllStoresTPLog <- aggrAirAllStoresTP + scale_y_continuous(trans = "log1p")
 
 # Check lead time from reservation to visit ----
 hpgAir %>%
