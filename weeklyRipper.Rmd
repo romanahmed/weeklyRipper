@@ -1,0 +1,161 @@
+---
+title: "Data Science Talk"
+author: "Roman Ahmed"
+date: "5 July 2018"
+output:
+  # beamer_presentation: default
+  ioslides_presentation:
+    widescreen: yes
+---
+
+
+## Hello customers
+
+**[Recruit Restaurant Visitor Forecasting:](https://www.kaggle.com/c/recruit-restaurant-visitor-forecasting)** Recruit Holdings has unique access to key data sets that could make automated future customer **prediction** possible. Specifically, Recruit Holdings owns *Hot Pepper Gourmet* (a restaurant review service), *AirREGI* (a restaurant point of sales service), and *Restaurant Board* (reservation log management software).
+
+In this competition, you're challenged to use reservation and visitation data to **predict** the total number of visitors to a restaurant for future dates. This information will help restaurants be much more efficient and allow them to focus on creating an enjoyable dining experience for their customers.
+
+
+**Objective:** You must use the reservations, visits, and other information from these sites to **forecast** future restaurant visitor totals on a given date. The training data covers the dates from 2016 until April 2017. The test set covers the last week of April and May of 2017. 
+
+
+
+## Today's objective
+
+* Building a solution to the problem
+* Presenting findings to a combination of Technical and Business people (Manager Advanced Analytic, Data Scientists, Business Manager) for around 20-30 minutes covering
+    + Brief Summary of the Problem
+    + The step-by-step approach to how you came to the answer (including unsuccessful/poor performing models and how you improved them)
+    + Your solution and its performance (against the  evaluation metric but also using other appropriate metrics that you deem necessary. Submit to Kaggle, if possible)
+    + Limitations to your approach
+    + How you could improve if given more time
+
+
+## Standard modelling workflow
+
+<!-- ![](images/modProcess.svg){height=80%} -->
+
+```{r, out.height= "250px", echo = FALSE, fig.align='center'}
+knitr::include_graphics("images/modProcess.svg")
+```
+
+Image/diagram credit: [topepo](https://github.com/topepo/rstudio-conf-2018/blob/master/Materials/images/intro-process-1.svg)
+
+* Some EDA kernels are available that uses uni-variate and bi-variate analysis
+    + Either taking temporal or spatial dimension into account
+* Two main strategies adopted for modelling in the kernel
+    + Predictive modelling
+    + Forecasting modelling
+    
+    
+## My initial thoughts
+
+* Designing a proof of concept that can be generalized
+* Proposing a solution based on time series forecasting methods
+    + Forecasting assumes data comes from a generation process and the serial dependency in a time series along with covariance between time series can account variability in the population
+* The main assumption behind the thinking is the given group of time series represents the population of time series so that covariance is reliably
+
+
+
+## EDA: Reservation 2 Visit (1)
+
+```{r, echo=FALSE, eval=TRUE}
+load("~/Coles/weeklyRipper/analysis.RData")
+```
+
+```{r, echo = FALSE, fig.align='center'}
+hpgNairReservationLSmemory
+```
+
+* AIR guests prefer to book on the same day or towards weekends
+* HPG guests prefer to book towards weekends or on the same day
+
+But do they book within the same week?
+
+## EDA: Reservation 2 Visit (2)
+
+```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE}
+res2VisitTimeDistPlot
+```
+
+* Approximately 55% guests visit within a week of reservation
+* Approximately 90% of the guests visit within 4 weeks
+
+## EDA: Total visitors and reservations (1)
+
+```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE, fig.height=3.5}
+aggrAirAllStoresTP
+```
+
+* Apparent structural break in the total number of visitors
+* Clear weekly pattern in daily total visitors
+* Reservation data is missing from 2016-07-25 -- 2016-10-27
+* Difficult to investigate relation between visits and reservation
+
+## EDA: Total visitors and reservations (2)
+
+```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE, fig.height=3.5}
+aggrAirAllStoresTPLog
+```
+
+* Same plot as shown in the previous slide on log scale
+* Shows the pattern in the total visit matches with the pattern in reservation
+* Reservation declining from end of April to entire May. Is it expected?
+* Visit data ends at end of April
+
+
+## EDA: Total visitors by month
+
+```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE, fig.height=3.5}
+smoothAggrAirReserveByMonth
+```
+
+* The peak time for visit is March
+* Total visitors are very low from May to end of June
+
+## Proposed methodology based on EDA
+
+* Use time series modelling to forecast the total visitors 
+* Adjust forecast for total visits with the reservation data
+* Use historical visitation data for each restaurant and obtain unbiased forecast for each of those.
+    + They are likely to be less accurate due to low signal to noise
+* Update the noisy forecast at restaurant level by exploiting the aggregation structure and covariance between the series
+
+
+## Challenges
+
+* Historical reservation data has missing values which makes the exercise challenging
+* A weighted combination between forecasting at unit level and at aggregated level can solve this problem but will require substantial effort to complete.
+
+## Fixing missing in the reservation data
+
+```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE, fig.height=3.5}
+rawVsCleanesTSLog
+```
+
+* Plots of reservation data fixed for outliar. Green for AIR and red for HPG.
+* Linear interpolation was used to fill the missing values
+* Structural decomposition was used to reduce the effect of outlines
+
+## Modelling total visit
+
+```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE, fig.height=3.5}
+ForerawVsCleanesTS
+```
+
+* The forecast for the total series was obtained using ARIMA fitting
+* Forecasted values are shows in thick purple line along with 80% forecast interval in light blue
+* Fit of the model is shows using thin purple color over the observed data
+
+
+
+
+## Concluding remarks
+
+* The chosen modeal was ARIMA(5,1,3)(2,0,0)[7]. It shows data got strong serial dependency (5) + seasonal dependency (2) + dependency in error (3) 
+* A well designed solution for this problem can be  applied to inventory management and can serve multiple layers of decision makers in supply chain management or in a retail sector 
+* This solution has the potential to avoid using engineered features (spatial and temporal feature) of known quality. Specially the spatial features as the locations are not exact.
+* Filling the gaps in the reservation data was bit ad-hoc. More pedantic forecasting and backcasting could be used to address this issue
+* Weighted combination to adjust forecast at unit and aggregated level is left as a future exercise
+
+
