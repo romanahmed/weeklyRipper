@@ -150,6 +150,3 @@ holidays <- holidays %>%
   mutate(holiday_flg = as.logical(holiday_flg),
          date = ymd(calendar_date))
 
-
-# Load plot utility function ----
-source('~/Coles/weeklyRipper/scripts/utilityFunc.R')
