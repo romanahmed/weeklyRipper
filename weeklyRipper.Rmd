@@ -1,5 +1,5 @@
 ---
-title: "Data Science Talk"
+title: "Data Science Catchup"
 author: "Roman Ahmed"
 date: "5 July 2018"
 output:
@@ -41,45 +41,60 @@ knitr::include_graphics("images/modProcess.svg")
 
 Image/diagram credit: [topepo](https://github.com/topepo/rstudio-conf-2018/blob/master/Materials/images/intro-process-1.svg)
 
-* Some EDA kernels are available that uses uni-variate and bi-variate analysis
+* Some popular EDA kernels shows various uni-variate (+ few bi-variate)
     + Either taking temporal or spatial dimension into account
 * Two main strategies adopted for modelling in the kernel
     + Predictive modelling
     + Forecasting modelling
     
     
-## My initial thoughts
+## Way to go forward
 
-* Designing a proof of concept that can be generalized
-* Proposing a solution based on time series forecasting methods
-    + Forecasting assumes data comes from a generation process and the serial dependency in a time series along with covariance between time series can account variability in the population
-* The main assumption behind the thinking is the given group of time series represents the population of time series so that covariance is reliably
+* Design a proof of concept that can be generalized
+    + Solution will be based on time series forecasting methods
+    + Solution should exploit the multivariate nature of the data
+
+### Merit of the chosen path
+* Forecasting method believes data come from a generation process and (i) the serial dependency in a time series along with (ii) covariance between time series can account variability in the population
+
+### Assumption
+* The main assumption behind the thinking is the given group of time series represents the population of time series so that covariance is reliably estimated
+
+### Let's do some EDA to check feasibility
 
 
+## EDA: Reservation to Visit (1)
 
-## EDA: Reservation 2 Visit (1)
-
-```{r, echo=FALSE, eval=TRUE}
+```{r, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+library(wesanderson)
 load("~/Coles/weeklyRipper/analysis.RData")
 ```
 
-```{r, echo = FALSE, fig.align='center'}
+```{r, echo = FALSE, fig.align='center', fig.height=3.5}
 hpgNairReservationLSmemory
 ```
 
 * AIR guests prefer to book on the same day or towards weekends
 * HPG guests prefer to book towards weekends or on the same day
 
-But do they book within the same week?
+But do they reserve and visit within the same week?
 
-## EDA: Reservation 2 Visit (2)
+## EDA: Reservation to Visit (1_circular data)
+
+```{r, echo = FALSE, fig.align='center'}
+hpgNairReservationLSmemoryPC
+```
+
+Better visualization for examining the pattern
+
+## EDA: Reservation to Visit (2)
 
 ```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE}
 res2VisitTimeDistPlot
 ```
 
 * Approximately 55% guests visit within a week of reservation
-* Approximately 90% of the guests visit within 4 weeks
+* Approximately 85% of the guests visit within 3 weeks of reservation
 
 ## EDA: Total visitors and reservations (1)
 
@@ -87,10 +102,10 @@ res2VisitTimeDistPlot
 aggrAirAllStoresTP
 ```
 
-* Apparent structural break in the total number of visitors
+* Apparent structural break (systematic missing) in the total number of visitors
 * Clear weekly pattern in daily total visitors
 * Reservation data is missing from 2016-07-25 -- 2016-10-27
-* Difficult to investigate relation between visits and reservation
+* Difficult to observe relation between visits and reservation
 
 ## EDA: Total visitors and reservations (2)
 
@@ -110,22 +125,23 @@ aggrAirAllStoresTPLog
 smoothAggrAirReserveByMonth
 ```
 
-* The peak time for visit is March
-* Total visitors are very low from May to end of June
+* Total visitors declines from March to May (keep in mind the strcutural break!)
 
 ## Proposed methodology based on EDA
 
 * Use time series modelling to forecast the total visitors 
-* Adjust forecast for total visits with the reservation data
-* Use historical visitation data for each restaurant and obtain unbiased forecast for each of those.
-    + They are likely to be less accurate due to low signal to noise
-* Update the noisy forecast at restaurant level by exploiting the aggregation structure and covariance between the series
+* Adjust forecast using reservation data
+* Extending the approach
+    + Use historical visitation data for each restaurant and obtain unbiased forecast for each of those. These are likely to be less accurate due to low signal to noise
+    + Update the noisy forecast at restaurant level by exploiting the aggregation structure and covariance between the series
 
 
 ## Challenges
 
 * Historical reservation data has missing values which makes the exercise challenging
 * A weighted combination between forecasting at unit level and at aggregated level can solve this problem but will require substantial effort to complete.
+    + Will demonstrate how to adjust forecast for total visitor series using the noisy reservation data only
+    + Present results in form of visualization
 
 ## Fixing missing in the reservation data
 
@@ -133,29 +149,45 @@ smoothAggrAirReserveByMonth
 rawVsCleanesTSLog
 ```
 
-* Plots of reservation data fixed for outliar. Green for AIR and red for HPG.
-* Linear interpolation was used to fill the missing values
-* Structural decomposition was used to reduce the effect of outlines
+* Plots of reservation data fixed for missing values outlier
+    + Linear interpolation was used to fill the missing values
+    + Structural decomposition was used to reduce the effect of outlines
 
-## Modelling total visit
+## Modelling total visit with adjustment
 
 ```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE, fig.height=3.5}
 ForerawVsCleanesTS
 ```
 
 * The forecast for the total series was obtained using ARIMA fitting
-* Forecasted values are shows in thick purple line along with 80% forecast interval in light blue
-* Fit of the model is shows using thin purple color over the observed data
+* Forecasted values (in red) along with 80% forecast interval (in blue) are shown
+* Fit of the model is shows using thin red line overlaying the observed data
 
+## Comparions of adusted vs unadjusted forecast
 
+```{r, echo = FALSE, fig.align='center', warning=FALSE, message=FALSE, fig.height=3.5}
+foreCompAdjvsNoAdj
+```
 
+Which one is better?
 
-## Concluding remarks
+* Hard to say without evaluation
+* Adjusted model mimics more dynaimc of the observed data
+* May be average (/weighted average) of two models is even better
 
-* The chosen modeal was ARIMA(5,1,3)(2,0,0)[7]. It shows data got strong serial dependency (5) + seasonal dependency (2) + dependency in error (3) 
-* A well designed solution for this problem can be  applied to inventory management and can serve multiple layers of decision makers in supply chain management or in a retail sector 
-* This solution has the potential to avoid using engineered features (spatial and temporal feature) of known quality. Specially the spatial features as the locations are not exact.
-* Filling the gaps in the reservation data was bit ad-hoc. More pedantic forecasting and backcasting could be used to address this issue
-* Weighted combination to adjust forecast at unit and aggregated level is left as a future exercise
+* I beleive EDA supports adjusted method
+
+## Some remarks
+
+* The chosen modeal for adjusted forecasting was ARIMA(5,1,3)(2,0,0)[7]. It shows strong presence of serial dependency (5) + seasonal dependency (2) + dependency in error (3) 
+    + The unadjusted forecasting model was ARIMA(1,0,2)(2,1,0)[7]
+* This solution has the potential to avoid using engineered features (spatial and temporal feature) of unknown quality and reliability. Specially the spatial features as the locations are not exact.
+* A well designed solution for this problem can be  applied to inventory management and can serve multiple layers of decision makers in supply chain management.
+
+## Limitations and future improvement
+
+* Filling the gaps in the reservation data was adhoc. More pedantic approach could be used to address this issue
+* Weighted combination to adjust forecast at unit and aggregated level is left as a future exercise follwoing the advocated pathway
+* Reservation data for the observed time series is less noisy consider to unobserved part of the total visits. This imply further adjustment requirement and not to use the model for long term forecasting.
 
 
